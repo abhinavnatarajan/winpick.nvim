@@ -68,14 +68,11 @@ function M.select(opts)
 	vim.cmd("mode") -- clear cmdline again to remove pick-up message
 	internal.hide_cues(cues)
 
-	local is_ctrl_c = not ok
-	local is_esc = choice == ESC_CODE
-
-	if is_ctrl_c or is_esc then
+	if not ok then
 		return nil, nil
 	end
 
-	choice = string.char(choice):upper()
+	choice = choice:upper()
 
 	local win = targets[choice]
 

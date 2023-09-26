@@ -61,9 +61,9 @@ function M.select(opts)
 	local cues = internal.show_cues(targets, opts)
 
 	vim.cmd("mode") -- clear cmdline once
-	print(opts.prompt or defaults.prompt)
+	-- print(opts.prompt or defaults.prompt)
 
-	local ok, choice = pcall(vim.fn.getchar) -- Ctrl-C returns an error
+	local ok, choice = pcall(vim.fn.input, opts.prompt or defaults.prompt) -- Ctrl-C returns an error
 
 	vim.cmd("mode") -- clear cmdline again to remove pick-up message
 	internal.hide_cues(cues)

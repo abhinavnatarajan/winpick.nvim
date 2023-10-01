@@ -34,7 +34,7 @@ function M.select(opts)
 	end, wins)
 
 	if #eligible_wins == 0 then
-		eligible_wins = wins
+		return nil
 	end
 
 	if #eligible_wins == 1 then

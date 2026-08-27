@@ -11,10 +11,10 @@ end
 
 --- Shows label and buffer name, if available. Else, show only the label.
 --- @param label string: Label to be shown alongside the buffer name.
---- @param _ number: ID of the selected window.
---- @param bufnr number: ID of the selected window's buffer.
+--- @param winid integer: ID of the selected window.
+--- @param bufnr integer: ID of the selected window's buffer.
 --- @return string: The label as is.
-local function default_label_formatter(label, _, bufnr)
+local function default_label_formatter(label, winid, bufnr)
 	local buf_name = api.nvim_buf_get_name(bufnr)
 
 	if buf_name:len() == 0 then
@@ -26,14 +26,21 @@ end
 
 local M = {}
 
+--- @class Config
+--- @field border string
+--- @field prompt string
+--- @field filter (fun(winid: integer): boolean) | nil
+--- @field format_label fun(label: string, winid: integer, bufnr: integer): string
+--- @field chars string[]
+
 --- Builds the default options.
---- @return table: The defaults.
+--- @return Config: The defaults.
 function M.defaults()
 	return {
 		border = "double",
-		filter = nil,
 		prompt = "Pick a window: ",
 		format_label = default_label_formatter,
+		filter = nil,
 		chars = nil,
 	}
 end
@@ -46,8 +53,8 @@ function M.format_index(idx)
 end
 
 --- Returns the list of labels that will sequentially be used for visual cues.
---- @param custom_chars table: List of characters that will serve as labels.
---- @return table: Alphabet containing user-provided characters plus a complementary alphabet.
+--- @param custom_chars string[]: List of characters that will serve as labels.
+--- @return string[]: Alphabet containing user-provided characters plus a complementary alphabet.
 function M.resolve_chars(custom_chars)
 	if vim.tbl_isempty(custom_chars) then
 		return alphabet
@@ -71,17 +78,18 @@ function M.resolve_chars(custom_chars)
 end
 
 --- Shows visual cues for each window.
---- @param targets table: Map of labels and their respective window objects.
---- @param opts table: Options for showing visual cues.
+--- @param targets table<string, integer>: Map of labels and their respective window ids.
+--- @param opts Config: Options for showing visual cues.
 --- @return table: List of visual cues that were opened.
 function M.show_cues(targets, opts)
 	-- Reset view.
 	local cues = {}
 	for label, win in pairs(targets) do
 		local bufnr = api.nvim_create_buf(false, true)
+		local winbufnr = api.nvim_win_get_buf(win)
 
 		if opts.format_label then
-			label = opts.format_label(label, win.id, win.bufnr)
+			label = opts.format_label(label, win, winbufnr)
 		end
 
 		local padding = string.rep(" ", 4)
@@ -98,12 +106,12 @@ function M.show_cues(targets, opts)
 		local width = label:len() + padding:len() * 2
 		local height = 3
 
-		local center_x = api.nvim_win_get_width(win.id) / 2
-		local center_y = api.nvim_win_get_height(win.id) / 2
+		local center_x = api.nvim_win_get_width(win) / 2
+		local center_y = api.nvim_win_get_height(win) / 2
 
 		local cue_winid = api.nvim_open_win(bufnr, false, {
 			relative = "win",
-			win = win.id,
+			win = win,
 			width = width,
 			height = height,
 			col = math.floor(center_x - width / 2),
@@ -113,7 +121,7 @@ function M.show_cues(targets, opts)
 			border = opts.border,
 		})
 
-		pcall(api.nvim_buf_set_option, cue_winid, "buftype", "nofile")
+		vim.bo[bufnr].buftype = "nofile"
 
 		table.insert(cues, cue_winid)
 	end

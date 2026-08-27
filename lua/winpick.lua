@@ -2,8 +2,6 @@ local internal = require("winpick.internal")
 
 local api = vim.api
 
-local ESC_CODE = 27
-
 local defaults = internal.defaults()
 
 local M = {}
@@ -12,24 +10,17 @@ local M = {}
 --- action is to focus the selected window. The argument passed to the callback is a window ID if a
 --- window is selected or nil if it the selection is aborted.
 --- @param opts table | nil: Optional options that may override global options.
---- @return number | nil, number | nil: Selected window table containing ID and its corresponding buffer ID.
+--- @return number | nil: Window ID of selected window.
 function M.select(opts)
 	opts = vim.tbl_deep_extend("force", defaults, opts or {})
 
 	local wins = api.nvim_tabpage_list_wins(0)
-	wins = vim.tbl_map(function(winid)
-		return {
-			id = winid,
-			bufnr = api.nvim_win_get_buf(winid),
-		}
-	end, wins)
 
 	-- Filter out some buffers according to configuration.
 	local eligible_wins = vim.tbl_filter(function(win)
 		if opts.filter then
-			return opts.filter(win.id, win.bufnr, defaults.filter)
+			return opts.filter(win)
 		end
-
 		return true
 	end, wins)
 
@@ -38,8 +29,7 @@ function M.select(opts)
 	end
 
 	if #eligible_wins == 1 then
-		local win = eligible_wins[1]
-		return win.id, win.bufnr
+		return eligible_wins[1]
 	end
 
 	local targets = {}
@@ -69,7 +59,7 @@ function M.select(opts)
 	internal.hide_cues(cues)
 
 	if not ok then
-		return nil, nil
+		return nil
 	end
 
 	choice = choice:upper()
@@ -77,10 +67,10 @@ function M.select(opts)
 	local win = targets[choice]
 
 	if win then
-		return win.id, win.bufnr
+		return win
 	end
 
-	return nil, nil
+	return nil
 end
 
 --- Sets up the plug-in by overriding default options.
